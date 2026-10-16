@@ -86,4 +86,21 @@ public class UserDao {
         }
         return null;
     }
+
+    public boolean updateUserStatus(int userId, String status) {
+        String sql = "UPDATE users SET status = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, status.toUpperCase());
+            pstmt.setInt(2, userId);
+            int rowsUpdated = pstmt.executeUpdate();
+            return rowsUpdated > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error updating user status: " + e.getMessage());
+        }
+        return false;
+    }
 }
