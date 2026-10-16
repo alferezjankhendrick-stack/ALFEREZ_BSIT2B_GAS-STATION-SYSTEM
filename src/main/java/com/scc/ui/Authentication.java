@@ -12,6 +12,6 @@ public class Authentication {
     }
 
     public void start() {
-        // Menu loop for Login, Registration, and Exit
+
     }
 }
