@@ -42,7 +42,7 @@ public class Main {
                     String user = sc.nextLine().trim();
                     System.out.print("Enter a new password: ");
                     String pass = sc.nextLine().trim();
-                    System.out.print("Select role [1] STAFF [2] USER: ");
+                    System.out.print("Select role [1] STAFF [2] ADMIN [3] CASHIER [4] INVENTORY MANAGER: ");
                     String roleChoice = sc.nextLine().trim();
 
                     String role;
@@ -51,7 +51,13 @@ public class Main {
                             role = "STAFF";
                             break;
                         case "2":
-                            role = "USER";
+                            role = "ADMIN";
+                            break;
+                        case "3":
+                            role = "CASHIER";
+                            break;
+                        case "4":
+                            role = "INVENTORY MANAGER";
                             break;
                         default:
                             role = null;
