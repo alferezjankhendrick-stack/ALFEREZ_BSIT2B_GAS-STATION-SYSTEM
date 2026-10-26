@@ -19,7 +19,7 @@ public class AdminMenu {
         boolean loggedIn = true;
         while (loggedIn) {
             System.out.println("\n=====================================");
-            System.out.println("           ADMIN DASHBOARD           "); // or System.out.println
+            System.out.println("           ADMIN DASHBOARD           "); 
             System.out.println("=====================================");
             System.out.println("1. View All Users");
             System.out.println("2. View Pending User Approvals");
