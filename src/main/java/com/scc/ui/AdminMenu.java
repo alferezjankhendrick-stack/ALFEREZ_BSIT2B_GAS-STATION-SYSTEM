@@ -301,7 +301,7 @@ public class AdminMenu {
         return userId;
     }
 
-    // Returns the chosen role, or null if cancelled or invalid.
+    
     private String chooseRole() {
         System.out.println("Roles:");
         System.out.println("1. ADMIN");
