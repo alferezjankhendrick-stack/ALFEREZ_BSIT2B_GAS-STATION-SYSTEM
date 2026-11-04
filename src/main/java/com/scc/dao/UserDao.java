@@ -12,6 +12,8 @@ import java.util.List;
 
 public class UserDao {
 
+    private final ActivityLogDao activityLogDao = new ActivityLogDao();
+
     public UserDao() {
         try (Connection conn = DatabaseConnection.getConnection()) {
             defaultAdmin(conn);
@@ -160,6 +162,15 @@ public class UserDao {
         }
     }
 
+    public boolean approveUser(int adminId, int userId) {
+        boolean success = approveUser(userId);
+        if (success) {
+            activityLogDao.logAction(adminId, "USER_APPROVED",
+                    "Admin [" + adminId + "] approved account for User ID " + userId);
+        }
+        return success;
+    }
+
 
     public User findById(int userId) {
         String sql = "SELECT id, username, password, roles, status FROM users WHERE id = ?";
@@ -220,6 +231,24 @@ public class UserDao {
             System.err.println("Error updating user role: " + e.getMessage());
         }
         return false;
+    }
+
+    public boolean updateUserRole(int adminId, int userId, String roles) {
+        boolean success = updateUserRole(userId, roles);
+        if (success) {
+            activityLogDao.logAction(adminId, "USER_UPDATED",
+                    "Admin [" + adminId + "] changed role of User " + userId + " to " + roles.toUpperCase());
+        }
+        return success;
+    }
+
+    public boolean updateUserStatus(int adminId, int userId, String status) {
+        boolean success = updateUserStatus(userId, status);
+        if (success) {
+            activityLogDao.logAction(adminId, "USER_UPDATED",
+                    "Admin [" + adminId + "] changed status of User " + userId + " to " + status.toUpperCase());
+        }
+        return success;
     }
 
 

@@ -1,17 +1,24 @@
 package com.scc.ui;
 
+import com.scc.dao.ActivityLogDao;
 import com.scc.dao.UserDao;
+import com.scc.model.ActivityLog;
 import com.scc.model.User;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
 
 public class AdminMenu {
+    private static final int DESC_WIDTH = 35;
+
     private final UserDao userDao;
+    private final ActivityLogDao activityLogDao;
     private final Scanner scanner;
 
-    public AdminMenu(UserDao userDao, Scanner scanner) {
+    public AdminMenu(UserDao userDao, ActivityLogDao activityLogDao, Scanner scanner) {
         this.userDao = userDao;
+        this.activityLogDao = activityLogDao;
         this.scanner = scanner;
     }
 
@@ -19,7 +26,7 @@ public class AdminMenu {
         boolean loggedIn = true;
         while (loggedIn) {
             System.out.println("\n=====================================");
-            System.out.println("           ADMIN DASHBOARD            "); 
+            System.out.println("           ADMIN DASHBOARD            ");
             System.out.println("=====================================");
             System.out.println("1. View All Users");
             System.out.println("2. View Pending User Approvals");
@@ -27,8 +34,9 @@ public class AdminMenu {
             System.out.println("4. Add New User");
             System.out.println("5. Update User Role / Status");
             System.out.println("6. Delete User Account");
-            System.out.println("7. Logout");
-            System.out.print("Choose an option (1-7): ");
+            System.out.println("7. View System Audit Logs");
+            System.out.println("8. Logout");
+            System.out.print("Choose an option (1-8): ");
 
             String choice = scanner.nextLine().trim();
 
@@ -43,7 +51,7 @@ public class AdminMenu {
                     break;
                 case "3":
                     System.out.println("\nApprove User Registration");
-                    approveUserAccount();
+                    approveUserAccount(admin);
                     break;
                 case "4":
                     System.out.println("\nAdd New User");
@@ -58,11 +66,14 @@ public class AdminMenu {
                     deleteUserAccount(admin);
                     break;
                 case "7":
+                    handleAuditLogs();
+                    break;
+                case "8":
                     System.out.println("\nYou have been logged out.");
                     loggedIn = false;
                     break;
                 default:
-                    System.out.println("\nInvalid choice. Please choose between 1 and 7.");
+                    System.out.println("\nInvalid choice. Please choose between 1 and 8.");
             }
         }
     }
@@ -84,7 +95,7 @@ public class AdminMenu {
     }
 
 
-    private void approveUserAccount() {
+    private void approveUserAccount(User admin) {
         List<User> pending = userDao.getPendingUsers();
         if (pending == null || pending.isEmpty()) {
             System.out.println("No pending registrations to approve.");
@@ -121,7 +132,7 @@ public class AdminMenu {
             return;
         }
 
-        if (userDao.approveUser(userId)) {
+        if (userDao.approveUser(admin.id(), userId)) {
             System.out.println("User ID " + userId + " has been approved.");
         } else {
             System.out.println("Failed to approve user ID " + userId + ".");
@@ -204,7 +215,7 @@ public class AdminMenu {
                     System.out.println("No changes made.");
                     return;
                 }
-                if (userDao.updateUserRole(userId, newRole)) {
+                if (userDao.updateUserRole(admin.id(), userId, newRole)) {
                     System.out.println("Role updated to " + newRole + ".");
                 } else {
                     System.out.println("Failed to update role.");
@@ -226,7 +237,7 @@ public class AdminMenu {
                         System.out.println("Invalid status choice. No changes made.");
                         return;
                 }
-                if (userDao.updateUserStatus(userId, newStatus)) {
+                if (userDao.updateUserStatus(admin.id(), userId, newStatus)) {
                     System.out.println("Status updated to " + newStatus + ".");
                 } else {
                     System.out.println("Failed to update status.");
@@ -301,7 +312,7 @@ public class AdminMenu {
         return userId;
     }
 
-    
+
     private String chooseRole() {
         System.out.println("Roles:");
         System.out.println("1. ADMIN");
@@ -356,5 +367,98 @@ public class AdminMenu {
             return "";
         }
         return value.length() <= width ? value : value.substring(0, width - 1) + "~";
+    }
+
+
+    private void handleAuditLogs() {
+        boolean back = false;
+        while (!back) {
+            System.out.println("\n--- SYSTEM AUDIT LOGS ---");
+            System.out.println("1. View All System Logs");
+            System.out.println("2. Filter Logs by User ID");
+            System.out.println("0. Back");
+            System.out.print("Choose an option: ");
+
+            switch (scanner.nextLine().trim()) {
+                case "1":
+                    printLogTable(activityLogDao.getAllLogs());
+                    break;
+                case "2":
+                    handleFilterLogsByUser();
+                    break;
+                case "0":
+                    back = true;
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please choose 0, 1 or 2.");
+            }
+        }
+    }
+
+    private void handleFilterLogsByUser() {
+        while (true) {
+            System.out.print("Enter User ID to filter (or 0 to cancel): ");
+            try {
+                int userId = Integer.parseInt(scanner.nextLine().trim());
+                if (userId == 0) {
+                    return;
+                }
+                printLogTable(activityLogDao.getLogsByUserId(userId));
+                return;
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a numeric User ID.");
+            }
+        }
+    }
+
+    private void printLogTable(List<ActivityLog> logs) {
+        if (logs.isEmpty()) {
+            System.out.println("No audit log entries found.");
+            return;
+        }
+
+        String format = "%-5s | %-8s | %-18s | %-35s | %-20s%n";
+        String border = "-".repeat(5 + 3 + 8 + 3 + 18 + 3 + DESC_WIDTH + 3 + 20);
+
+        System.out.println(border);
+        System.out.printf(format, "ID", "User ID", "Action Type", "Description", "Timestamp");
+        System.out.println(border);
+
+        for (ActivityLog log : logs) {
+            List<String> lines = wrap(log.description(), DESC_WIDTH);
+            System.out.printf(format, log.id(), log.userId(), log.actionType(), lines.get(0), log.timestamp());
+            for (int i = 1; i < lines.size(); i++) {
+                System.out.printf(format, "", "", "", lines.get(i), "");
+            }
+        }
+        System.out.println(border);
+        System.out.println(logs.size() + " log entr" + (logs.size() == 1 ? "y" : "ies") + " shown.");
+    }
+
+    private List<String> wrap(String text, int width) {
+        List<String> lines = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        for (String word : text.split(" ")) {
+            while (word.length() > width) {
+                if (current.length() > 0) {
+                    lines.add(current.toString());
+                    current.setLength(0);
+                }
+                lines.add(word.substring(0, width));
+                word = word.substring(width);
+            }
+            if (current.length() == 0) {
+                current.append(word);
+            } else if (current.length() + 1 + word.length() <= width) {
+                current.append(' ').append(word);
+            } else {
+                lines.add(current.toString());
+                current = new StringBuilder(word);
+            }
+        }
+        if (current.length() > 0 || lines.isEmpty()) {
+            lines.add(current.toString());
+        }
+        return lines;
     }
 }

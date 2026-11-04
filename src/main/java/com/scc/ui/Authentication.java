@@ -1,5 +1,8 @@
 package com.scc;
 
+import com.scc.dao.ActivityLogDao;
+import com.scc.dao.DatabaseInitializer;
+import com.scc.dao.FuelSaleDao;
 import com.scc.dao.UserDao;
 import com.scc.model.User;
 import com.scc.ui.AdminMenu;
@@ -11,8 +14,12 @@ import java.util.Scanner;
 public class Authentication {
     private static final Scanner sc = new Scanner(System.in);
     private static final UserDao userDao = new UserDao();
+    private static final ActivityLogDao activityLogDao = new ActivityLogDao();
+    private static final FuelSaleDao fuelSaleDao = new FuelSaleDao();
 
     public static void main(String[] args) {
+        DatabaseInitializer.initializeDatabase();
+
         boolean running = true;
 
         while (running) {
@@ -90,12 +97,18 @@ public class Authentication {
 
         if (user != null) {
             System.out.println("Login successful! Welcome, " + user.username() + " | ROLE: " + user.roles());
+            activityLogDao.logAction(user.id(), "LOGIN",
+                    "User " + user.username() + " (ID: " + user.id() + ") logged in.");
+
             switch (user.roles()) {
-                case "ADMIN" -> new AdminMenu(userDao, sc).display(user);
-                case "STAFF" -> new StaffMenu(userDao, sc).display(user);
+                case "ADMIN" -> new AdminMenu(userDao, activityLogDao, sc).display(user);
+                case "STAFF" -> new StaffMenu(userDao, fuelSaleDao, sc).display(user);
                 case "USER" -> new UserMenu(userDao, sc).display(user);
                 default -> System.out.println("Unknown role. Access denied.");
             }
+
+            activityLogDao.logAction(user.id(), "LOGOUT",
+                    "User " + user.username() + " (ID: " + user.id() + ") logged out.");
         } else {
             System.out.println("Login failed. Invalid username, password, or account pending approval.");
         }
