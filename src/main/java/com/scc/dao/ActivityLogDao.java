@@ -16,12 +16,20 @@ public class ActivityLogDao {
                     + "a.action_type, a.description, a.timestamp "
                     + "FROM activity_logs a LEFT JOIN users u ON u.id = a.user_id ";
 
+
     public boolean logAction(int userId, String actionType, String description) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            return logAction(conn, userId, actionType, description);
+        } catch (SQLException e) {
+            System.err.println("Error writing activity log: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean logAction(Connection conn, int userId, String actionType, String description)
+            throws SQLException {
         String sql = "INSERT INTO activity_logs (user_id, action_type, description) VALUES (?, ?, ?)";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
             pstmt.setString(2, actionType);
             pstmt.setString(3, description);
@@ -30,11 +38,7 @@ public class ActivityLogDao {
                 System.out.println("[ActivityLog] Saved: " + actionType + " (user " + userId + ")");
             }
             return saved;
-
-        } catch (SQLException e) {
-            System.err.println("Error writing activity log: " + e.getMessage());
         }
-        return false;
     }
 
     public List<ActivityLog> getAllLogs() {
